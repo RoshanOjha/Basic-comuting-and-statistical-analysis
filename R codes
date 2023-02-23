@@ -1,1 +1,1393 @@
 
+#You must save script in R before analysis. Hash tag is used to inactive the code chunk or to write comments in the code
+
+#Author: Roshan Babu Ojha
+#Basic R training 
+#Date: 06 Feb 2023
+
+#Setting working directory
+
+getwd()
+
+setwd("C:/Users/rojha/ownCloud/Training/Basic R training_Roshan/CARE_OTTISH")
+
+#To remove all the values and data sets from the global environment
+
+remove(list = ls())
+
+#In-built data in R
+
+data("mtcars")
+
+head(mtcars)
+
+str(mtcars)
+
+class(mtcars$mpg)
+
+#To make the boxplot
+
+boxplot(mtcars$hp)
+
+boxplot(mtcars$cyl)
+
+boxplot(mtcars$disp)
+
+#To make histogram
+
+hist(mtcars$hp)
+
+hist(mtcars$disp)
+
+#########################################################
+
+#Assignment - Please run the same code and prepare boxplot and histogram of in-built datasets 'iris' and 'PlantGrowth'
+
+######################################################
+
+#Importing data #You should have downloaded the excel data file (DataR_landuse) that I have provide in the class. 
+
+library(readxl) # load the library readxl
+
+df <- read_excel("DataR_landuse.xlsx", 
+                  sheet = "Datafinal")
+
+#To import csv file
+df_pasture <- read.csv("DataR_pasture.csv")
+
+#importing our data set in R, which is assigned as 'df', you can give any name in place of 'df'
+
+View(df) #To view the imported data
+
+head(df) #To check the first six row in the data
+
+str(df) #To know the structure of the data
+
+names(df) #To know the variable names
+
+## Checking data
+
+#It is always important to check the data if there are any missing values ('NA') present or not.
+
+anyNA(df)
+
+# if this value return true, there are NAs. In order to find NAs we can use NA mapping tools. In our case, there are no NAs. So, let's move forward.
+
+#Summary of the data, This will give you min, max, and quartile values.
+
+summary(df)
+
+#The same thing you can visualize through boxplot.
+
+boxplot(df$TOC)
+
+boxplot(df$POC)
+
+boxplot(df$TOCmass)
+
+#You can do it individually but the benefit of using R is to create a function/loop and apply it to the rest of the parameters. It is one of the simplest example of creating loop in R. 
+
+names(df) #Calling variable names of the dataframe
+
+# #create a new data frame excluding the factors (treatments, reps)
+# 
+# df1 <- df[,-c(1, 2, 3, 4, 5)]
+# 
+# df2 <- df[,-c(1:5)]
+
+#This is for creating plots per panel
+par(mfrow = c(2,5))    
+
+#create for loop
+
+for(i in 6:15) {
+  boxplot(df[,i], main=names(df)[i])
+}
+
+dev.off()
+
+boxplot(df$TN)
+
+#Checking the normality of the data
+
+shapiro.test(df$TOC)
+
+shapiro.test(df$pHw)
+
+#Again you can use the function to do all the normality test at once
+
+normality <- function(filename){
+  data = filename
+  norm = apply(data, 2, shapiro.test)
+  return(norm)
+}
+
+
+normality <- function(filename) {
+  data = filename
+  norm = apply(data, 2, shapiro.test)
+  return(norm)
+}
+
+normality(df[,-c(1:5)])
+
+
+#Alternatives ways
+library(tidyverse)
+library(rstatix)
+library(dplyr)
+
+#Here we are going to use in-built data set "PlantGrowth".
+
+data("PlantGrowth")
+
+set.seed(1234)
+
+PlantGrowth %>%  sample_n_by(group, size = 1)
+
+levels(PlantGrowth$group)
+
+#Checking outliers
+
+PlantGrowth %>% 
+  group_by(group) %>% 
+  identify_outliers(weight)
+
+#Checking normality group-wise
+
+PlantGrowth %>% 
+  group_by(group) %>% 
+  shapiro_test(weight)
+
+
+#Testing homogeneity of variance
+PlantGrowth %>% 
+  levene_test(weight ~ group)
+
+###########################
+#Assignment, use the above code in the dataset 'df' and calculate outlier, normality and variance of the data. You can use any observed variables and factors. (For your reference - Landuse, Depth and Location are factors; TOC and rest are observed variables)
+#################################
+
+
+################ Day 3
+
+df %>% 
+  group_by(LandUse) %>% 
+  shapiro_test(TOC)
+
+df [c(2,3,5,6,7)] %>% 
+  group_by(LandUse, Location, Depth) %>% 
+  identify_outliers(TOCmass)
+
+df$Depth <-  as.factor(df$Depth)
+
+df %>% 
+  levene_test(TOC ~ Depth*LandUse*Location)
+
+
+#Data transformation
+#So, we have checked the normality of our data. Now we need to check, whether transformation will bring the data to normal or not. 
+
+#Square root transformation 
+#log transformation
+#Power transformation
+
+#If any of the above transformation do not work, we need to go for non-parametric analysis
+
+#Linear model assumptions 
+# Independence
+# Normality
+# Equal variance
+
+shapiro.test(sqrt(df$TOC))
+shapiro.test(sqrt(df$TOC)) #This square root transformation now worked.
+shapiro.test(log(df$POC)) #This is log transformation
+
+#Power transformation
+
+#ASSIGNMENT: Similarly transform other variables one by one and check their normality
+
+#Creating a new data frame of transformed variables by adding new column
+
+df$TOCt <- sqrt(df$TOC)
+
+df$MAOCt <- log(df$MAOC)
+
+df$POCt <- log(df$POC)
+
+df$TotalC <- df$POC + df$MAOC
+
+#ASSIGNMENT: Similarly create new dataframe to all the transformed variables. 
+
+#Now check whether those new variables added in our dataframe or not?
+
+names(df)
+
+View(df)
+
+#######################################
+
+#SUBSETTING data according to rows and column ***ONLY FOR PRACTICE***
+
+# Sub-setting according to rows (we have districts in the row)
+
+df_kavre <-  df[df$Location == "Kavre", ]
+df_gorkha <- df[df$Location == "Gorkha", ]
+
+#alternative ways to subset
+
+df_kav <- subset(df, Location == 'Kavre')
+df_gor <- subset(df, Location == 'Gorkha')
+
+
+#Sub-setting data according to column (we have variables in the column)
+
+df1 <- df[,-c(7:10)] #if you wish to exclude certain column
+
+df2 <- df[c(2:5, 16:18)] #If you wish to include only certain column
+
+#Column inclusion
+dfTransform <- df[c(2,3,5, 16:19)]
+
+#Column Exclusion
+dfTransform1 <- df[,-c(1,4,6:15,20)]
+
+###############################################
+
+#Now convert your treatment variables as factor in R
+
+df$Location <- as.factor(df$Location)
+df$LandUse <- as.factor(df$LandUse)
+df$Depth <- as.factor(df$Depth)
+
+#now check the structure of the data
+
+str(df)
+
+#Now you can see the conversion of character and numeric value into factor
+
+#How to calculate the mean, standard deviation, standard error, and confidence interval
+
+library(dplyr)
+
+se = function(x){sd(x)/sqrt(length(x))}
+
+#you can calculate the mean individually using aggregate function
+aggregate(TOC ~ LandUse*Depth*Location, df, mean)
+
+aggregate(TOC~LandUse, df, sd)
+
+aggregate(TOC~Depth, df, se)
+
+#Alternatively, use dplyr library to calculate mean, sd, se, and CI for all parameters at once
+
+df_summary <- df[c(2,3,5,6:15)] %>% 
+  group_by(Location, LandUse, Depth) %>%
+  summarise_all(list(mean = mean, sd = sd, se = se, CI = ~se(.x)*1.96))
+
+
+#Export the summary result in excel
+
+library(xlsx)
+write.xlsx2(as.data.frame(df_summary), file = "DataSummarDF.xlsx", col.names = T, row.names = T)
+
+
+#Linear modelling
+
+# The most popular research questions include:
+   
+# whether two variables (n = 2) are correlated (i.e., associated)
+# whether multiple variables (n > 2) are correlated
+# whether two groups (n = 2) of samples differ from each other
+# whether multiple groups (n >= 2) of samples differ from each other
+# whether the variability of two or more samples differ
+# Each of these questions can be answered using the following statistical tests:
+
+# 1. Correlation test between two variables
+# 2. Correlation matrix between multiple variables
+
+# 3. Comparing the means of two groups:
+#     - Student's t-test (parametric)
+#     - Wilcoxon rank test (non-parametric)
+
+# 4. Comparing the means of more than two groups
+#    - ANOVA test (analysis of variance, parametric): extension of t-test to compare more than two groups.
+#    - Kruskal-Wallis rank sum test (non-parametric): extension of Wilcoxon rank test to compare more than two groups
+
+# 5. Comparing the variances:
+# - Comparing the variances of two groups: F-test (parametric)
+# - Comparison of the variances of more than two groups: Bartlett's test (parametric), Levene's test (parametric) and Fligner-Killeen test (non-parametric)
+
+#Correlation
+#It shows the relationship (direction) between the variables
+
+#To test the correlation between two variables
+
+cor.test(df$TOC, df$MAOC)
+
+#Correlation matrix
+cor(df[c(6:15)], method = "pearson")
+
+round(cor(df[c(6:15)], method = "pearson"), 3)
+
+#Scatter plots with correlation matrix 
+
+library(GGally)
+
+ggpairs(df[c(6, 8:10, 12)])
+
+#To see the correlation and scatter plot between the factors
+
+ggpairs(df[c(2,6,8,9,12,13,15)], ggplot2::aes(colour = df$Depth))
+
+
+#You can assign the above plot with name
+
+plot1 <- ggpairs(df[c(6,8,9,12,13,15)], ggplot2::aes(colour = df$Location))
+
+plot1
+
+#Heatmaps
+library(heatmaply)
+
+df_car <- normalize(mtcars)
+
+heatmaply(df_car)
+
+ggheatmap(df_car)
+
+#Assignment make heatmap using our own datasets
+
+
+
+# df1 <- normalize(df[c(6:15)])
+# 
+# heatmaply(df1)
+# 
+# ggheatmap(df1)
+# 
+# heatmaply(
+#   as.matrix(df1),
+#   seriate = "mean", 
+#   row_dend_left = TRUE,
+#   plot_method = "plotly")
+
+###### Linear regression models #######
+
+#To see relationship between independent (Explanatory, treatment, predictor) and dependent (outcome) variables
+
+# example, yield depends on level of nitrogen. Here 'yield' is dependent (outcome) variable (y) and nitrogen level is independent variable (predictor or explanatory) variable (x). It is very important to decide dependent and independent variable before doing regression analysis.
+ 
+
+#Check the assumptions of linearity
+#Transform data if require
+#If you are working on large dataset 'data scaling' is very important
+
+# #Data Scaling/Centering
+# 
+# library(caret)
+# 
+# preproc1 <- preProcess(df[c(3,4,5,6:15)], method=c("center", "scale"))
+# 
+# norm1 <- predict(preproc1, df[c(3,4,5,6:15)])
+# 
+# summary(norm1)
+# 
+# summary(df[c(3,4,5,6:15)])
+# 
+# dataR_scaled <- as.data.frame(norm1)
+# 
+# names(dataR_scaled)
+# 
+# dataR_scaled$LandUse <- as.factor(dataR_scaled$LandUse)
+# dataR_scaled$Depth <- as.factor(dataR_scaled$Depth)
+
+######## --- Simple linear regression --- #######
+
+
+#y = b0 + b1x, where y is outcome (dependent)variable, x is predictor (independent) variable, b0 is intercept when x is zero, and b1 is slope of regression line
+
+# In our dataset 'df' TOC depends upon several factors. Let's assume TOC change in soil depends upon change in MAOC. So, here TOC is dependent (outcome) variable and MAOC is independent (predictor) variable.
+
+library(ggpubr)
+library(tidyverse)
+
+#Data visualization
+
+ggplot(df, aes(x = MAOC, y = TOC)) +
+  geom_point() +
+  stat_smooth()
+
+#Using the original data does not fit for regression analysis. Let's work on transformed data
+
+ggplot(df, aes(x = MAOCt, y = TOCt)) +
+  geom_point() +
+  stat_smooth()
+
+#Even the transformation does not work here. Let's subset the data depth wise
+
+#Assignment - please create a subset data (with name df_depth) from data 'df' taking 'Depth' 10 and 20 cm. 
+
+df_depth <- df[df$Depth == c("10", "20"),]
+
+ggplot(df_depth, aes(x = MAOCt, y = TOCt)) +
+  geom_point() +
+  stat_smooth()
+
+#Check the correlation
+cor(df_depth$TOCt, df_depth$MAOCt)
+
+#Now it seems that the data is ready for regression model
+
+#Model Computation
+#Here we want to build TOC = b0 + b1*MAOC 
+
+lm1 <- lm(TOCt ~ MAOCt, data = df_depth)
+lm1
+
+#Interpretation of the model (lm1) - just for an example 
+# - The estimated regression line equation is TOC = 0.945 + 0.592*MAOC
+# - b0 = 0.945 means, even without formation of MAOC, 0.945% TOC formed in the soil. 
+# - the regression beta coefficient (b1) for MAOC is 0.592, which is slope. This means that with the increase in 0.592% MAOC, we can expect 1% increase in TOC in soil. So, if we increase MAOC by 2%, the predicted value of TOC increase is 0.945 + 0.592 * 2 = 2.129%
+
+# Adding regression line
+
+ggplot(df_depth, aes(MAOCt, TOCt)) +
+  geom_point() +
+  stat_smooth(method = lm)
+
+#Model assessment (Checking quality of the regression model)
+# We built the model (TOC = 0.945 + 0.592*MAOC) to predict the change in TOC by change in MAOC. Before using this model to predict future TOC change, we must be sure this is statistically significant model. 
+
+summary(lm1)
+
+#Residuals provides us the quick overview of the residual distribution of the model. We assume zero mean, so the median value should be near to zero value.Minimum and maximum should be roughly nearly equal values.  
+
+#Coefficients showed the regression beta coefficients and their statistical significance. Predictor varibles that are significantly associated with outcome variables are marked by stars. 
+
+# Residual standard error and R square and F-statistics are metrics that are used to check how well the model fits to our data
+
+#In our model,
+
+#- there is a significant association between the outcome and predictor variable. See the p value is less than 0.05 in both the intercept and predictor variable in Coefficients.
+
+#Standard error measure the model precision (variability/accuracy of beta coefficients). 
+
+# 95% confidence interval of the model can be calculate by
+# upper level = intercept/slope coeff. + 1.96 * SE
+# lower level = intercept/slope coeff. - 1.96 * SE
+
+#Or it can be calculated using function
+
+confint(lm1)
+
+#It showed that we are approximately 95% confident that our intercept fall between 0.91 to 0.97 and beta coefficients between 0.52-0.65
+
+#Model accuracy
+# It can be assessed by three parameters (RSE, R square, F-statistics)
+
+#1. RSE
+#In our model RSE is 0.104 indicates that the observed TOC values may deviate from true regression line by approximately 0.1 units in average.
+
+#While comparing model, the model with smaller RSE should be selected. 
+
+#Whether or not 0.104 is acceptable prediction error is subjective and depends on the problem context. We can calculate the percentage error of the model by
+
+sigma(lm1)*100/mean(df$TOCt)
+
+#So, our model error is 9.89%, which is acceptable in our context.
+
+# 2. R-squared and Adjusted R-squared:
+#   The R-squared (R2) ranges from 0 to 1 and represents the proportion of information (i.e. variation) in the data that can be explained by the model. The adjusted R-squared adjusts for the degrees of freedom.
+# 
+# The R2 measures, how well the model fits the data. For a simple linear regression, R2 is the square of the Pearson correlation coefficient.
+# 
+# A high value of R2 is a good indication. However, as the value of R2 tends to increase when more predictors are added in the model, such as in multiple linear regression model, you should mainly consider the adjusted R-squared, which is a penalized R2 for a higher number of predictors.
+# 
+# An (adjusted) R2 that is close to 1 indicates that a large proportion of the variability in the outcome has been explained by the regression model.
+# A number near 0 indicates that the regression model did not explain much of the variability in the outcome.
+
+#In our model the Adjusted R square is 0.78 means, 78% variation in the data is explained by our model. 
+
+# 3. F-Statistic:
+#   The F-statistic gives the overall significance of the model. It assess whether at least one predictor variable has a non-zero coefficient.
+# 
+# In a simple linear regression, this test is not really interesting since it just duplicates the information in given by the t-test, available in the coefficient table. In fact, the F test is identical to the square of the t test: 347.4 = (18.64)^2. This is true in any model with 1 degree of freedom.
+# 
+# The F-statistic becomes more important once we start using multiple predictors as in multiple linear regression.
+# 
+# A large F-statistic will corresponds to a statistically significant p-value (p < 0.05). In our example, the F-statistic equal 347.4 producing a p-value of 2.2e-16, which is highly significant.
+
+#Model diagnostics
+
+par(mfrow = c(2,2))
+
+plot(lm1)
+
+dev.off()
+
+#Here we need to check normal Q-Q plot and scale-location plot to see the residual distribution and variances. In our model, both the graph satisfied the normality of variance homogeneity.  
+
+#Assignment - Develop a linear regression model for TOC and POC from the dataset 'df' and calculate the model accuracy. 
+
+
+###### --- Multiple linear regression --- ####
+
+# Multiple linear regression is an extension of simple linear regression used to predict an outcome variable (y) on the basis of multiple distinct predictor variables (x).
+
+# With three predictor variables (x), the prediction of y is expressed by the following equation:
+   
+#   y = b0 + b1*x1 + b2*x2 + b3*x3
+ 
+# The "b" values are called the regression weights (or beta coefficients). They measure the association between the predictor variable and the outcome. "b_j" can be interpreted as the average effect on y of a one unit increase in "x_j", holding all other predictors fixed.
+
+#Let's take an example from dataset 'df'. We have one outcome variable (y) i.e. TOC and other predictor variables POC, MAOC, DOC, and CN. 
+
+#Check the assumption (same as linear regression models)
+
+#Building model
+
+# TOC = b0 + b1*MAOC + b2*POC + b3*DOC + b4*CN
+
+lm2 <- lm(TOC ~ MAOC + POC + DOC + CN, data = df)
+
+lm2
+
+summary(lm2)
+
+#Here F-stat is significant, so at least one predictor is significant, checking the model cofficients and their respective p-values
+
+summary(lm2)$coefficients
+
+#All the predictor values are significant. If any of the predictor variables are non-significant we can drop the predictors from the model and re-run the model summary.
+
+#Here our final model 
+
+# TOC = 0.37*MAOC(%) + 0.23*POC(%) + 8.06*DOC(ug/L) + 0.05*CN - 0.47
+
+# There is no TOC formation (TOC decline by 0.47 units) if there is no MAOC, POC, DOC, and CN in soil.
+
+# With an increase of 0.37 unit in MAOC, 0.23 unit in POC, 8.06 unit in DOC and 0.05 unit in CN, there is 1 unit increase in TOC. 
+
+#Model error
+sigma(lm2)/mean(df$TOC)
+
+par(mfrow = c(2,2))
+plot(lm2)
+# The scale location and residual-leverage plot is not convincing. We need to work on data transformation. 
+
+##### --- Mean Comparision --- #####
+
+## One sample t-test
+
+# one-sample t-test is used to compare the mean of one sample to a known standard (or theoretical/hypothetical) mean (??).
+
+#For example, in our dataset 'df' we obtained TOC value from different observations. Our national TOC average value is 0.9%. Now, I am interested to check whether the observed value is greater or smaller than national TOC average value. 
+
+#Two-tailed t-test
+res <- t.test(df$TOC, mu = 0.9)
+res
+
+#Interpretation - So, my observed mean TOC value (1.17) is significantly greater than national average (0.9%) TOC. 
+
+#One tailed t-test
+t.test(df$TOC, mu = 0.9,
+       alternative = "less")
+
+t.test(df$TOC, mu = 0.9,
+       alternative = "greater")
+
+#### Paired t-test ####
+
+# The paired samples t-test is used to compare the means between two related groups of samples. In this case, you have two values (i.e., pair of values) for the same samples. 
+
+# For an example, you give certain supplement (treatment) to 20 people and record the weight before and after the treatment. While doing, paired t-test the sampling object must be same. 
+
+#Let's make a data frame in R (new practice to enter data in R...alternatively you can enter data in excel and import in R as shown in previous classes)
+
+# Weight of the people before treatment
+before <-c(200.1, 190.9, 192.7, 213, 241.4, 196.9, 172.2, 185.5, 205.2, 193.7)
+
+# Weight of the people after treatment
+after <-c(392.9, 393.2, 345.1, 393, 434, 427.9, 422, 383.9, 392.3, 352.2)
+
+# Create a data frame
+my_data <- data.frame( 
+  group = rep(c("before", "after"), each = 10),
+  weight = c(before,  after))
+
+#Compute mean and standard deviation
+library("dplyr")
+group_by(my_data, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(weight, na.rm = TRUE),
+    sd = sd(weight, na.rm = TRUE))
+
+# Plot weight by group and color by group
+library("ggpubr")
+ggboxplot(my_data, x = "group", y = "weight", 
+          color = "group", palette = c("#00AFBB", "#E7B800"),
+          order = c("before", "after"),
+          ylab = "Weight", xlab = "Groups")
+
+
+#Check assumptions of paired t-tests
+#Assumption 1: Are the two samples paired? 
+# - Yes, the data collected from same people before and after treatment
+
+#Assumption 2: Is this a large sample?
+# - No, because n<30, we need to check whether the differences of the pairs follows the normal distribution.
+
+#Checking normality
+
+# First compute the differences
+d <- with(my_data, 
+          weight[group == "before"] - weight[group == "after"])
+
+# Then check Shapiro-Wilk normality test for the differences
+
+shapiro.test(d) 
+
+#From the output, the p-value is greater than the significance level 0.05 implying that the distribution of the differences (d) are not significantly different from normal distribution. In other words, we can assume the normality. Note that, if the data are not normally distributed, it's recommended to use the non parametric paired two-samples Wilcoxon test.
+
+# Compute t-test
+pairedT <- t.test(before, after, paired = TRUE)
+pairedT
+
+#OR
+pairedT <- t.test(weight ~ group, data = my_data, paired = TRUE)
+pairedT
+
+#Both the code gives the same result.
+
+#So, here we accept null hypothesis, means there is significant effect of providing supplement to increase the people weight. 
+
+##### Independent sample t-test (Unpaired sample t-test) ####
+
+# The unpaired two-samples t-test is used to compare the mean of two independent groups. For example, suppose that we have measured the weight of 100 individuals: 50 women (group A) and 50 men (group B). We want to know if the mean weight of women (mA) is significantly different from that of men (mB).
+
+# In this case, we have two unrelated (i.e., independent or unpaired) groups of samples. Therefore, it's possible to use an independent t-test to evaluate whether the means are different.
+
+# Note that, unpaired two-samples t-test can be used only under certain conditions:
+#   when the two groups of samples (A and B), being compared, are normally distributed. This can be checked using Shapiro-Wilk test.
+# and when the variances of the two groups are equal. This can be checked using F-test.
+
+#Here, we'll use an example data set, which contains the sample weight of 18 individuals (9 women and 9 men):
+
+# Data in two numeric vectors
+women_weight <- c(38.9, 61.2, 73.3, 21.8, 63.4, 64.6, 48.4, 48.8, 48.5)
+men_weight <- c(67.8, 60, 63.4, 76, 89.4, 73.3, 67.3, 61.3, 62.4) 
+
+# Create a data frame
+my_data1 <- data.frame( 
+  group = rep(c("Woman", "Man"), each = 9),
+  weight = c(women_weight,  men_weight))
+
+#Calculate summary stat
+library(dplyr)
+group_by(my_data1, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(weight, na.rm = TRUE),
+    sd = sd(weight, na.rm = TRUE))
+
+summary(my_data1)
+
+#Visualize the data
+library("ggpubr")
+ggboxplot(my_data1, x = "group", y = "weight", 
+          color = "group", palette = c("blue", "red"),
+          ylab = "Weight", xlab = "Groups")
+
+#Assumptions
+# 1. Both men and women are not related (indpendent of each other)
+# 2. The data are normally distributed
+
+#Checking normality
+# Shapiro-Wilk normality test for Men's weights
+with(my_data1, shapiro.test(weight[group == "Man"]))
+
+# Shapiro-Wilk normality test for Women's weights
+with(my_data1, shapiro.test(weight[group == "Woman"]))
+
+# 3. There is homogeneity of variance between the groups
+
+#F-test or variance test
+res.ftest <- var.test(weight ~ group, data = my_data1)
+res.ftest
+
+# So, the data satisfies all the assumptions. 
+
+# Compute independent paired t-test
+res1 <- t.test(weight ~ group, data = my_data1, var.equal = TRUE)
+res1
+
+#The p-value of the test is 0.01327, which is less than the significance level alpha = 0.05. We can conclude that men's average weight is significantly different from women's average weight with a p-value = 0.01327.
+
+#### Comparing means of multiple groups #####
+
+##ANOVA
+# The ANOVA test (or Analysis of Variance) is used to compare the mean of multiple groups. The term ANOVA is a little misleading. Although the name of the technique refers to variances, the main goal of ANOVA is to investigate differences in means.
+# 
+# There are different types of ANOVA for comparing independent groups, including:
+#   
+#   One-way ANOVA: an extension of the independent samples t-test for comparing the means in a situation where there are more than two groups. This is the simplest case of ANOVA test where the data are organized into several groups according to only one single grouping variable (also called factor variable). Other synonyms are: 1 way ANOVA, one-factor ANOVA and between-subject ANOVA.
+
+# two-way ANOVA used to evaluate simultaneously the effect of two different grouping variables on a continuous outcome variable. Other synonyms are: two factorial design, factorial anova or two-way between-subjects ANOVA.
+
+# three-way ANOVA used to evaluate simultaneously the effect of three different grouping variables on a continuous outcome variable. Other synonyms are: factorial ANOVA or three-way between-subjects ANOVA.
+
+# The main goal of two-way and three-way ANOVA is, respectively, to evaluate if there is a statistically significant interaction effect between two and three between-subjects factors in explaining a continuous outcome variable.
+
+# Assumptions
+# The ANOVA test makes the following assumptions about the data:
+#   
+# Independence of the observations. Each subject should belong to only one group. There is no relationship between the observations in each group. Having repeated measures for the same participants is not allowed.
+# No significant outliers in any cell of the design
+# Normality. the data for each design cell should be approximately normally distributed. #residuals
+# Homogeneity of variances. The variance of the outcome variable should be equal in every cell of the design.
+
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+
+#ONE WAY ANOVA
+#We will use in-built dataset "PlantGrowth"
+
+data("PlantGrowth")
+set.seed(1234)
+PlantGrowth %>% sample_n_by(group, size = 1)
+
+levels(PlantGrowth$group) #Shows the levels of the grouping variable
+
+#Reorder the group level according to our interest
+PlantGrowth <- PlantGrowth %>%
+  reorder_levels(group, order = c("trt1", "trt2", "ctrl"))
+
+#Check summary stat
+PlantGrowth %>%
+  group_by(group) %>%
+  get_summary_stats(weight, type = "mean_sd")
+
+#Visualization
+ggboxplot(PlantGrowth, x = "group", y = "weight")
+
+#Check assumptions
+PlantGrowth %>% 
+  group_by(group) %>%
+  identify_outliers(weight)
+
+#Check normality by groups
+PlantGrowth %>%
+  group_by(group) %>%
+  shapiro_test(weight)
+
+#Check homogeneity of variance
+PlantGrowth %>% levene_test(weight ~ group)
+
+#Computation
+res.aov <- PlantGrowth %>% anova_test(weight ~ group)
+res.aov
+
+#Post-hoc test
+# Pairwise comparisons
+pwc <- PlantGrowth %>% tukey_hsd(weight ~ group)
+pwc
+
+#Anova by building linear models
+
+lm.aov <- lm(weight ~ group, data = PlantGrowth)
+
+anova(lm.aov)
+
+car::Anova(lm.aov)
+
+#Checking residuals
+ggqqplot(residuals(lm.aov))
+shapiro.test(residuals(lm.aov))
+
+# The classical one-way ANOVA test requires an assumption of equal variances for all groups. In our example, the homogeneity of variance assumption turned out to be fine: the Levene test is not significant.
+
+# How do we save our ANOVA test, in a situation where the homogeneity of variance assumption is violated?
+
+# The Welch one-way test is an alternative to the standard one-way ANOVA in the situation where the homogeneity of variance canât be assumed (i.e., Levene test is significant).
+
+# In this case, the Games-Howell post hoc test or pairwise t-tests (with no assumption of equal variances) can be used to compare all possible combinations of group differences.
+
+# Welch One way ANOVA test
+res.aov2 <- PlantGrowth %>% welch_anova_test(weight ~ group); res.aov2
+
+# Pairwise comparisons (Games-Howell)
+pwc2 <- PlantGrowth %>% games_howell_test(weight ~ group); pwc2
+
+# You can also perform pairwise comparisons using pairwise t-test with no assumption of equal variances:
+
+pwc3 <- PlantGrowth %>% 
+  pairwise_t_test(weight ~ group, 
+                  pool.sd = FALSE,
+                  p.adjust.method = "bonferroni")
+
+pwc3
+
+#Two way ANOVA
+# We are going to use in-built dataset "Jobsatisfaction"
+
+set.seed(123)
+
+library(datarium)
+data("jobsatisfaction", package = "datarium")
+
+library(tidyverse)
+library(rstatix)
+
+jobsatisfaction %>% 
+  sample_n_by(gender, education_level, size = 1)
+
+#Check assumptions
+
+#Assignment - please identify outliers, shapiro-test and variance of the dataset 'jobsatisfaction'
+
+#Computation
+res.aov3 <- jobsatisfaction %>% 
+  anova_test(score ~ gender * education_level)
+
+res.aov3
+
+#The interaction is significant indicates that the impact that one factor (e.g., education_level) has on the outcome variable (e.g., job satisfaction score) depends on the level of the other factor (e.g., gender) (and vice versa). So, you can decompose a significant two-way interaction into:
+
+# Simple main effect: run one-way model of the first variable at each level of the second variable,
+# Simple pairwise comparisons: if the simple main effect is significant, run multiple pairwise comparisons to determine which groups are different.
+
+# For a non-significant two-way interaction, you need to determine whether you have any statistically significant main effects from the ANOVA output. A significant main effect can be followed up by pairwise comparisons between groups.
+
+#### Procedure for significant two-way interaction
+
+# Compute simple main effects
+# In our example, you could therefore investigate the effect of education_level at every level of gender or investigate the effect of gender at every level of the variable education_level.
+# 
+# Here, weâll run a one-way ANOVA of education_level at each levels of gender.
+
+# Note that, if you have met the assumptions of the two-way ANOVA (e.g., homogeneity of variances), it is better to use the overall error term (from the two-way ANOVA) as input in the one-way ANOVA model. This will make it easier to detect any statistically significant differences if they exist. When you have failed the homogeneity of variances assumptions, you might consider running separate one-way ANOVAs with separate error terms.
+
+# In the R code below, weâll group the data by gender and analyze the simple main effects of education level on Job Satisfaction score. The argument error is used to specify the ANOVA model from which the pooled error sum of squares and degrees of freedom are to be calculated.
+
+# Group the data by gender and fit  anova
+lm_score <- lm(score ~ gender * education_level, data = jobsatisfaction)
+
+res.aov3 <- jobsatisfaction %>% 
+  anova_test(score ~ gender * education_level)
+
+jobsatisfaction %>%
+  group_by(gender) %>%
+  anova_test(score ~ education_level, error = lm_score)
+
+# Here, the simple main effect of âeducation_levelâ on job satisfaction score is statistically significant for both male and female (p < 0.0001).
+# 
+# In other words, there is a statistically significant difference in mean job satisfaction score between males educated to either school, college or university level, F(2, 52) = 132, p < 0.0001. The same conclusion holds true for females, F(2, 52) = 62.8, p < 0.0001.
+
+
+# pairwise comparisons
+library(emmeans)
+
+pwc3 <- jobsatisfaction %>% 
+  group_by(gender) %>%
+  emmeans_test(score ~ education_level, p.adjust.method = "bonferroni") 
+
+pwc3
+
+
+#### Three way ANOVA
+
+#The three-way ANOVA is an extension of the two-way ANOVA for assessing whether there is an interaction effect between three independent categorical variables on a continuous outcome variable.
+
+#Here we will use our dataset 'df' where we have three factors
+
+#Assignment - Check assumptions of outliers, normality, and variance including residuals
+
+
+#Computation
+res.aov4 <- df %>% 
+  anova_test(TOC ~ Location * Depth * LandUse)
+
+res.aov4
+
+#Post-hoc tests
+# If there is a significant three-way interaction effect, you can decompose it into:
+#   
+# Simple two-way interaction: run two-way interaction at each level of third variable,
+# Simple simple main effect: run one-way model at each level of second variable, and
+# simple simple pairwise comparisons: run pairwise or other post-hoc comparisons if necessary.
+
+# If you do not have a statistically significant three-way interaction, you need to determine whether you have any statistically significant two-way interaction from the ANOVA output. You can follow up a significant two-way interaction by simple main effects analyses and pairwise comparisons between groups if necessary.
+# 
+# In this section weâll describe the procedure for a significant three-way interaction.
+
+#Assignment - Similar to two way interaction (above) we have Location * Land use is significant. Decompose the interaction and find out Which land use is significant in which location on TOC accumulation? 
+
+#In the following code we find three way interaction significant. Now let's decompose the interaction
+
+df$TotalC <- df$MAOC + df$POC
+
+res.aov5 <- df %>% 
+  anova_test(TotalC ~ Location * Depth * LandUse); res.aov5
+
+
+#Test the assumptions (assignment for yourself)
+library(ggpubr)
+lm_TOC <- lm(TotalC ~ Location * Depth * LandUse, data = df)
+ggqqplot(lm_TOC$residuals)
+
+#Compute simple two-way interactions
+# You are free to decide which two variables will form the simple two-way interactions and which variable will act as the third (moderator) variable. In our example, we want to evaluate the effect of LandUse*Depth interaction on TotalC at each level of Location.
+
+
+# Note that, when doing the two-way interaction analysis, itâs better to use the overall error term (or residuals) from the three-way ANOVA result, obtained previously using the whole dataset. This is particularly recommended when the homogeneity of variance assumption is met (Keppel & Wickens, 2004).
+# 
+# The use of group-specific error term is âsaferâ from any violations of the assumptions. However, the pooled error terms have greater power â particularly with small sample sizes â but are susceptible to problems if there are any violations of assumptions.
+
+# Group the data by Location and 
+# fit simple two-way interaction 
+
+model_TOC  <- lm(TotalC ~ Location * Depth * LandUse, data = df)
+
+car::Anova(model_TOC)
+
+df %>%
+  group_by(Location) %>%
+  anova_test(TotalC ~ LandUse * Depth, error = model_TOC)
+
+#There is significant two-way interaction between land use and depth for Kavre F(15, 144) = 5.06, p = <0.001 but not for Gorkha 
+
+# A statistically significant simple two-way interaction can be followed up with simple simple main effects. In our example, you could therefore investigate the effect of Land use on TotalC at every level of Depth or investigate the effect of Depth at every level of Land use. You will only need to do this for the simple two way interaction for 'Kavre' as this is the only simple two interaction that was significant. The error term again come from three-way ANOVA. 
+
+#Group the data by Location and Land use and analyze the simple simple main effects of the Depth on TOtalC
+
+#Group the data by Location and Land use, and fit anova
+
+treatment.effect <- df %>% 
+  group_by(Location, LandUse) %>% 
+  anova_test(TotalC ~ Depth, error = model_TOC)
+
+treatment.effect
+
+treatment.effect %>% 
+  filter(Location == "Kavre")
+
+#Error, how to solve it?? Input must be a vector (see the data types in R - vector, array, string, list etc)
+
+as.data.frame(treatment.effect) %>% 
+  filter(Location == "Kavre")
+
+#There was statistically simple simple main effects of Landuse at different depth for Kavre except at Abandoned land (5-10 years; AB10) and cropped land. 
+
+#Compute simple simple comparisions
+
+# A statistically significant simple simple main effect can be followed up by multiple pairwise comparisons to determine which group means are different. This can be easily done using the function emmeans_test() [rstatix package] described in the previous section.
+
+# Compare the different Landuses by depth and Location variables:
+
+# Pairwise comparisons
+library(emmeans)
+pwc_TOC <- df %>%
+  group_by(Location, LandUse) %>%
+  emmeans_test(TotalC ~ Depth, p.adjust.method = "bonferroni") %>%
+  select(-df, -statistic, -p) # Remove details
+
+pwc_TOC
+
+# Show comparison results for male at high risk
+pwc_TOC %>% filter(Location == "Kavre", LandUse == c("AB10+", "AB5", "Forest", "Pasture"))
+
+# Estimated marginal means (i.e. adjusted means) 
+# with 95% confidence interval
+get_emmeans(pwc_TOC) %>% filter(Location == "Kavre")
+
+#Alternative approach (three way ANOVA) - you can change it for one way and two ANOVA according to your factor(s)
+
+lm_TOC <- lm(TotalC ~ LandUse*Depth*Location, data = df)
+
+par(mfrow =c(2,2))
+
+plot(lm_TOC)
+
+anova(lm_TOC)
+
+library(multcompView);library(multcomp)
+library(lsmeans);library(rcompanion);library(FSA)
+
+TOC_marginal <- lsmeans(lm_TOC,
+                       ~ LandUse)
+pairs(TOC_marginal,
+      adjust="tukey") #To see the contrast between groups
+
+# if you want to seperate means - use this code
+CLD_TOC = cld(TOC_marginal,
+              alpha   = 0.05,
+              Letters = letters,         ###  Use lowercase letters for .group
+              adjust  = "tukey")         ###  Tukey-adjusted comparisons
+
+CLD_TOC
+
+#Two-factorial design and Split plot design???
+
+#### Split-Split plot analysis in R
+
+# Statistical procedures for agricultural research, page 143
+
+# Grain Yields of Three Rice Varieties Grown under three Management practices and Five Nitrogen levels; in a split-split-plot design with nitrogen as main-plot, management practice as subplot, and variety as sub-subplot factors, with three replications.
+
+library(agricolae)
+
+split_data <- system.file("external/ssp.csv", package="agricolae")
+
+df_split <- read.csv(split_data)
+
+model<-with(df_split, ssp.plot(block,nitrogen,management,variety,yield))
+
+model
+
+gla<-model$gl.a; glb<-model$gl.b; glc<-model$gl.c
+
+Ea<-model$Ea; Eb<-model$Eb; Ec<-model$Ec
+
+par(mfrow=c(1,3),cex=0.6)
+
+out1<-with(df_split, LSD.test(yield,nitrogen,gla,Ea,console=TRUE))
+
+out2<-with(df_split,LSD.test(yield,management,glb,Eb,console=TRUE))
+
+out3<-with(df_split,LSD.test(yield,variety,glc,Ec,console=TRUE))
+
+plot(out1,xlab="Nitrogen",las=1,variation="IQR")
+plot(out2,xlab="Management",variation="IQR")
+plot(out3,xlab="Variety",variation="IQR")
+
+# with aov
+AOV <- aov(yield ~  block + nitrogen*management*variety + Error(block/nitrogen/management),data=df_split)
+
+summary(AOV)
+
+#### Analysis of Covariance (ANCOVA) #####
+
+# The one-way ANCOVA can be seen as an extension of the one-way ANOVA that incorporate a covariate variable. The two-way ANCOVA is used to evaluate simultaneously the effect of two independent grouping variables (A and B) on an outcome variable, after adjusting for one or more continuous variables, called covariates. 
+
+# When in a set of independent variable consist of both factor (categorical independent variable) and covariate (metric independent variable), the technique used is known as ANCOVA. The difference in dependent variables because of the covariate is taken off by an adjustment of the dependent variableâs mean value within each treatment condition.
+
+# Assumptions
+# ANCOVA makes several assumptions about the data, such as:
+#   
+# Linearity between the covariate and the outcome variable at each level of the grouping variable. This can be checked by creating a grouped scatter plot of the covariate and the outcome variable.
+# Homogeneity of regression slopes. The slopes of the regression lines, formed by the covariate and the outcome variable, should be the same for each group. This assumption evaluates that there is no interaction between the outcome and the covariate. The plotted regression lines by groups should be parallel.
+# The outcome variable should be approximately normally distributed. This can be checked using the Shapiro-Wilk test of normality on the model residuals.
+# Homoscedasticity or homogeneity of residuals variance for all groups. The residuals are assumed to have a constant variance (homoscedasticity)
+# No significant outliers in the groups
+
+#Please check assumptions
+
+#Load required libraries
+library(tidyverse)
+library(dplyr)
+library(ggpubr)
+library(rstatix)
+library(broom)
+
+# Load and prepare the data
+res.aov6 <- df %>% 
+  anova_test(CN ~ Age + LandUse)
+
+get_anova_table(res.aov6)
+
+#Here we use "age' as a covariate.
+
+#If you get co-variate significant, you need to run pairwise comparison as follows.
+
+#Pairwise comparison
+library(emmeans)
+pwc4 <- df %>% 
+  emmeans_test(
+    CN ~ LandUse, covariate = Age,
+    p.adjust.method = "bonferroni")
+
+pwc4
+
+        ################
+          #Nested ANOVA
+        #################
+
+#This model is used when a set of treatments are nested (occupied within) on each other. In our dataset df, there are two locations in which six land uses are nested and in the land use depth is nested. 
+
+#Building model, instead of interaction (*), you must use slash (/) to develop a nested model
+res.aov7 <- df %>% 
+  anova_test(TotalC ~ Depth + LandUse + Location + Depth/LandUse/Location)
+
+res.aov8 <- df %>% 
+  anova_test(TotalC ~ Depth*LandUse*Location); res.aov8
+
+get_anova_table(res.aov7)
+
+#Here, three way anova is significant, you need to decompose the interaction likewise in three way interaction as shown in above classes
+
+pwc4 <- df %>% 
+  group_by(Location, LandUse) %>% 
+  emmeans_test(TotalC ~ Depth,
+    p.adjust.method = "bonferroni")
+
+pwc4
+
+
+#===========================================#
+  #High quality graphics for publication
+#==========================================#
+#Load required libraries
+library(ggpubr)
+library(ggplot2)
+library(gridExtra)
+library(dplyr)
+library(tidyverse)
+
+#Call out the summary function (above) using dplyr package
+
+se = function(x){sd(x)/sqrt(length(x))}
+
+df <- df[,-c(1,4)]
+
+df$Location <- as.factor(df$Location)
+df$LandUse <- as.factor(df$LandUse)
+df$Depth <- as.factor(df$Depth)
+
+df_summary <- df %>% 
+  group_by(LandUse, Depth, Location) %>%
+  summarise_all(list(mean = mean, sd = sd, se = se, CI = ~se(.x)*1.96))
+
+df_summary1 <- df[,-c(1,3)] %>% 
+  group_by(LandUse) %>%
+  summarise_all(list(mean = mean, sd = sd, se = se, CI = ~se(.x)*1.96))
+
+df_summary2 <- df[,-1] %>% 
+  group_by(LandUse, Depth) %>%
+  summarise_all(list(mean = mean, sd = sd, se = se, CI = ~se(.x)*1.96))
+
+df_summary3 <- df[,-c(1,2)] %>% 
+  group_by(Depth) %>%
+  summarise_all(list(mean = mean, sd = sd, se = se, CI = ~se(.x)*1.96))
+
+names(df_summary)
+
+#you can change the levels name and order with the following code
+
+df_summary$LandUse <- factor(df_summary$LandUse,
+                             levels = c("Forest","Pasture","AB10+","AB10","AB5","Cropped"),
+                             labels = c("Forest", "Pasture", "Abandoned >10 y", "Abandoned 5-10 y", "Abandoned <5 y", "Cropped"))
+
+#Now run the same code above to see the difference. Please re-name depth and Location
+
+df_summary$Depth <- factor(df_summary$Depth,
+                           levels = c("10", "20", "40", "60"),
+                           labels = c("0-10", "10-20", "20-40", "40-60"))
+
+df_summary$Location <- as.factor(df_summary$Location)
+
+#=====Box plot=======#
+
+
+g_TOC_box <- ggplot(df, aes(LandUse, TOC)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(x = "Land Use",
+       y = "Soil Organic Carbon, g/Kg"); g_TOC_box
+
+
+#Add dotplot
+g_TOC_box <- ggplot(df, aes(LandUse, TOC)) +
+  geom_boxplot() +
+  geom_dotplot(binaxis = 'y',
+               stackdir = 'center',
+               dotsize = 0.5,
+               fill = 'blue') +
+  theme_bw() +
+  labs(x = "Land Use",
+       y = "Soil Organic Carbon, g/Kg");g_TOC_box
+
+
+
+#If we need to see the change in SOC according to depth, we can add Depth
+
+g_SOC_depth <- ggplot(df, aes(LandUse, TOC, col = factor(Depth))) + 
+  geom_boxplot() +
+  theme_bw()+
+  theme(legend.position = c(0.80, 0.85),
+        axis.text = element_text(size = 12, colour = "black")) +
+  labs(x = "Land Use",
+       y = "Soil Organic Carbon, g/Kg");g_SOC_depth
+
+
+#If you would like to see the change in TOC across location in different depth
+
+gg_box_loc <- ggplot(df, aes(LandUse, TOC, col = factor(Depth))) + 
+  geom_boxplot() +
+  facet_wrap(~ Location, nrow = 1) +
+  theme_bw() +
+  theme(legend.position = c(0.90, 0.85)) +
+  labs(x = "Land Use",
+       y = "Soil Organic Carbon, g/Kg");gg_box_loc
+
+
+
+
+##====== Line plot with standard error and 95% CI =======#
+
+names(df_summary)
+
+
+
+gg_TOC <- ggplot(aes(y = TOC_mean, x = Depth, group = LandUse, col = LandUse), data = df_summary) +
+  geom_point( ) + 
+  geom_line ( ) +
+  facet_wrap(~ Location, nrow = 1) +
+  geom_errorbar(aes(ymin = TOC_mean - TOC_CI, ymax = TOC_mean + TOC_CI, width = 0.2)) +
+  theme(axis.text=element_text(size=12, colour = "black"),
+        axis.title = element_text(size = 12),
+        legend.position = c(0.90, 0.80)) +
+  labs(x = "Depth, cm", y = "Soil organic carbon, g/Kg") ;gg_TOC
+
+gg_TOC <- ggplot(aes(y = TOC_mean, x = Depth, group = LandUse, col = LandUse), data = df_summary) +
+  geom_point(size = 3.0) + #to change shape add pch = 1-6
+  geom_line (size = 1.0) +
+  facet_wrap(~ Location, nrow = 1) +
+  geom_errorbar(aes(ymin = TOC_mean - TOC_CI, ymax = TOC_mean + TOC_CI, width = 0.4)) +
+  labs(x = "Depth, cm", y = "Soil organic carbon, g/Kg") +
+  scale_colour_manual(values = c('black', 'green', 'blue', 'pink', 'yellow', 'orange')) + 
+  theme(axis.title = element_text(size = 14),
+         legend.position = c(0.86, 0.80),
+         legend.text = element_text(size = 12),
+         legend.background = element_rect(fill = NA),
+         legend.key = element_rect(fill = NA, color = NA)); gg_TOC
+
+
+#https://htmlcolorcodes.com/ See this link for color codes. You can make your own color palate in R, customize it and use it according to your variables too. 
+
+#Assignment 1: Create a line graph with standard deviation of variable 'DOC' as y axis and Land use as x axis.
+
+df_summary1$LandUse <- as.numeric(df_summary1$LandUse)
+
+gg_DOC <- ggplot(aes(x = LandUse, y = DOC_mean), data = df_summary1) +
+  geom_point() +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = DOC_mean - DOC_se, ymax = DOC_mean + DOC_se)) +
+  theme_bw() +
+  labs(x = "Land use class",
+       y = "Dissolved organic carbon, mg/Kg"); gg_DOC
+
+#Assignment 2: Create a line graph with standard error of variable 'POC' showing the depth wise variation with Land use
+
+gg_POC_depth <- ggplot(aes(x = LandUse, y = POC_mean, group = Depth, col = factor(Depth)), data = df_summary2) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = POC_mean - POC_se, ymax = POC_mean + POC_se, width = 0.2));gg_POC_depth
+  
+
+#Assignment3, Create a line graph with standard error of variable 'MAOC' keeping Land use in the facets and location as grouping variable
+
+gg_MAOC <- ggplot(aes(x = Depth, y = MAOC_mean, group = Location, col = Location), data = df_summary) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~ LandUse, nrow = 1) +
+  geom_errorbar(aes(ymax = MAOC_mean + MAOC_CI, ymin = MAOC_mean - MAOC_CI)) +
+  scale_colour_manual(values = c("blue", "orange")) +
+  labs(x = "Depth, cm", y = "Mineral associated organic matter, %") +
+  theme_bw() +
+  theme(legend.position = c(0.75, 0.90)); gg_MAOC
+  
+
+  
+  
+  #BAR Diagram with error bars (95% CI)
+
+ggBar_POC <- ggplot(aes(x = Depth, y = POC_mean, fill = Location), data = df_summary) +
+  geom_bar(stat = "identity", position = position_dodge(1)) +
+  facet_wrap(~ LandUse, nrow = 1) +
+  geom_errorbar(aes(ymax = POC_mean + POC_se, ymin = POC_mean - POC_se),
+                stat = "identity", position = position_dodge(1)) +
+  labs(x = "Depth, cm", y = "Particulate organic matter, cm") +
+  theme_bw() +
+  theme(legend.position = c(0.90, 0.90)); ggBar_POC
+
+
+ggBar_TOC <- ggplot(aes(y = TOC_mean, x = Depth, fill = LandUse), data = df_summary) +
+  geom_bar(stat = 'identity', position = position_dodge(1)) + 
+  facet_wrap(~ Location, nrow = 1) +
+  geom_errorbar(aes(ymin = TOC_mean - TOC_CI, ymax = TOC_mean + TOC_CI, width = 0.2), 
+                stat = "identity",  position = position_dodge(1)) +
+  labs(x = "Depth, cm", y = "Soil organic carbon, g/Kg") +
+  theme_bw()+
+  theme(legend.position = c(0.86, 0.80));ggBar_TOC
+
+ggBar_TOC1 <- ggplot(aes(y = TOC_mean, x = LandUse, fill = Depth), data = df_summary) +
+  geom_bar(stat = 'identity', position = position_dodge(1)) + 
+  facet_wrap(~ Location, nrow = 1) +
+  geom_errorbar(aes(ymin = TOC_mean - TOC_CI, ymax = TOC_mean + TOC_CI, width = 0.2), 
+                stat = "identity",  position = position_dodge(1)) +
+  labs(x = "Depth, cm", y = "Soil organic carbon, g/Kg") +
+  theme_bw()+
+  theme(legend.position = c(0.86, 0.80));ggBar_TOC1
+
+# Smooth lines
+
+
+gg_smooth <- ggplot(aes(y = TN, x = Depth), data = df) +
+  geom_point() +
+  facet_wrap(~ LandUse, nrow = 1) +
+  geom_smooth(method = "lm") +
+  labs(x = "Depth (cm)", y = "Total nitrogen (%)") +
+  theme(legend.position = c(0.93, 0.90),
+         legend.title = element_blank(),
+         legend.background = element_rect(fill = NA),
+         legend.key = element_rect(fill = NA, color = NA)); gg_smooth
+
+#To add location in the facets
+
+gg_smooth1 <- ggplot(aes(y = TN, x = Depth, col = factor(Location)), data = df) +
+  geom_point() +
+  facet_wrap(~LandUse, nrow = 1) +
+  geom_smooth(method = "lm", se = F) +
+  labs(x = "Depth, cm", y = "Total Nitrogen, %") +
+  theme_bw() +
+  theme(legend.position = c(0.90, 0.90));gg_smooth1
+
+
+
+#Loess - local regression fitting
+gg_smooth2 <- ggplot(aes(y = TN, x = Depth, col = factor(Location)), data = df) +
+  geom_point() +
+  facet_wrap(~ LandUse, nrow = 1) +
+  geom_smooth(method = "loess") +
+  labs(x = "Depth (cm)", y = "Total nitrogen (%)") +
+  theme(legend.position = c(0.93, 0.90),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = NA),
+        legend.key = element_rect(fill = NA, color = NA)); gg_smooth2
+
+
+#Arrange multiple graphs in the grid, this will allow you to merge different graphs into a single figure. There are lots of other aesthetics which you can do in grid.arrange function. 
+library(gridExtra)
+Combine_plot <- grid.arrange(gg_TOC, ggBar_TOC, gg_smooth1, gg_box_loc, ncol = 2); Combine_plot
+
+
+#Saving the ggplots using ggsave function (you can define the pixel size here)
+
+ggsave("AllPlot.png", plot = Combine_plot, width = 50, height = 30, units = "cm", dpi = 300)
+
+######## Resources ####
+
+#To learn programming and basics of R. Please refer to class video how to execute the program
+install.packages("swirl")
+library(swirl)
+
+# Shiny apps - In-built interactive R base application. Search for R shiny apps
+
+#Jamovi software - R based open software. Please refer class video how to analyse data using Jamovi. 
+
+# Please refer "Cookbook for R" Here is the link http://www.cookbook-r.com/ 
+
+# There are plethora of resources, which you can find online but the best way to learn R is to start practicing codes in own data. 
